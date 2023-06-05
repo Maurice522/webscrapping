@@ -135,4 +135,125 @@ async function scrapeProfile(url){
     await browser.close();
 }
 
-scrapeProfile("https://www.linkedin.com/in/vatsal-poddar-71810a158/");
+
+async function CloseTarget (browser){
+    await browser.close();
+}
+
+async function openLinks(links, page, browser){
+
+    //Getting Data
+
+    try{
+        var blog, blogs=[], heading, img, body , author, timestamp;
+        for(var i =0; i< links.length; i++){
+        
+            await page.goto(links[i])
+
+            //Getting Heading
+            var element = await page.waitForSelector(".article__title");
+            (await element.getProperty('textContent')).jsonValue()
+            .then(data=>{
+                heading =data
+                console.log(heading)
+            })
+            //Getting Author
+            element = await page.waitForSelector(".article__byline > a");
+            (await element.getProperty('textContent')).jsonValue()
+            .then(data=>{
+                author =data
+                console.log(author)
+            })
+            //Getting Timestamp
+            element = await page.waitForSelector(".full-date-time");
+            (await element.getProperty('textContent')).jsonValue()
+            .then(data=>{
+                timestamp =data
+                console.log(timestamp)
+            })
+            //Getting Image
+            element = await page.waitForSelector(".article__featured-image");
+            (await element.getProperty('src')).jsonValue()
+            .then(data=>{
+                img =data
+                console.log(img)
+            })
+            //Getting Body (not completed)
+            element = await page.waitForSelector(".article__featured-image");
+            (await element.getProperty('src')).jsonValue()
+            .then(data=>{
+                body =data
+                console.log(body)
+            })
+
+            blog = {
+                heading,
+                img,
+                author,
+                body,
+                timestamp
+            }
+
+            blogs = [...blogs, blog]
+        }
+        
+
+    }catch(err){
+        console.log(err)
+        CloseTarget(browser)
+    }
+    
+    console.log(blogs)
+    CloseTarget(browser)
+}
+
+async function getblogs(url){
+    const browser = await puppeteer.launch({ headless:false});
+    const page = await browser.newPage();
+    // await page.goto(url);
+
+    await page.goto(url);
+
+    var consoled = false;
+  
+    try{    
+        // await page.waitFor(3000);
+        var links=[];
+        for( var i=1; i<5; i++){
+
+            const element = await page.waitForSelector(`.mini-view > article:nth-child(${i}) > h3 > a`)
+
+            var res;
+            (await (element.getProperty('href'))).jsonValue()
+            .then((data)=>{
+                res =data;
+            }).catch(err=>{
+                console.log(err)
+            })
+            links = [...links, res]
+        }
+        const element = await page.waitForSelector(`.mini-view > article:nth-child(1) > h3 > a`)
+        var res;
+        (await (element.getProperty('href'))).jsonValue()
+        .then((data)=>{
+            res =data;
+        }).catch(err=>{
+            console.log(err)
+        })
+        links[0] = res
+
+        console.log(links)
+
+        openLinks(links, page, browser)
+     
+    }
+    catch(err){
+        console.log(err)
+        console.log("div not found!")
+        CloseTarget(browser)
+    }
+
+   
+}
+// scrapeProfile("https://www.linkedin.com/in/vatsal-poddar-71810a158/");
+getblogs("https://techcrunch.com/");

@@ -1,6 +1,8 @@
 const puppeteer = require('puppeteer');
 
-let cheerio = require('cheerio')
+let cheerio = require('cheerio');
+
+const Blogs = require('./firebase')
 
 const users = [
 
@@ -135,6 +137,17 @@ async function scrapeProfile(url){
     await browser.close();
 }
 
+async function addBlog (data){
+    
+    try{
+
+        await Blogs.add({...data})
+        // let id = generateString(18)
+        // await firebase.setDoc(doc(db, "Blogs", id),{...data})       
+    }catch (err){
+        console.log(err)
+    }
+}
 
 async function CloseTarget (browser){
     await browser.close();
@@ -145,7 +158,7 @@ async function openLinks(links, page, browser){
     //Getting Data
 
     try{
-        var blog, blogs=[], heading, img, body , author, timestamp;
+        var blog, blogs=[], heading, img, body=[] , author, timestamp;
         for(var i =0; i< links.length; i++){
         
             await page.goto(links[i])
@@ -178,13 +191,17 @@ async function openLinks(links, page, browser){
                 img =data
                 console.log(img)
             })
-            //Getting Body (not completed)
-            element = await page.waitForSelector(".article__featured-image");
-            (await element.getProperty('src')).jsonValue()
-            .then(data=>{
-                body =data
-                console.log(body)
-            })
+            //Getting Body
+            body=[]
+            element = await page.waitForSelector(".article-content");
+            var pTags = await element.$$('p')
+            for(var j=0; j<pTags.length; j++){
+                (await pTags[j].getProperty('textContent')).jsonValue()
+                .then(data=>{
+                    if(data != '')
+                    body = [...body, data]
+                })
+            }
 
             blog = {
                 heading,
@@ -202,7 +219,9 @@ async function openLinks(links, page, browser){
         console.log(err)
         CloseTarget(browser)
     }
-    
+    blogs.forEach(async(blog, index)=>{
+        await addBlog(blog) 
+    })
     console.log(blogs)
     CloseTarget(browser)
 }
